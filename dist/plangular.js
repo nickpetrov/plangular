@@ -435,7 +435,7 @@ var resolve = require('soundcloud-resolve-jsonp');
 var Player = require('audio-player');
 var hhmmss = require('hhmmss');
 
-plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicPopup', function($timeout, plangularConfig, $ionicPopup) {
+plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading', function($timeout, plangularConfig, $ionicLoading) {
 
   var client_id = plangularConfig.clientId;
   var player = new Player();
@@ -521,9 +521,9 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicPopup', 
                 }
                 player.playPause(scope.tracks[i].src);
               } else {
-                $ionicPopup.alert({
-                  title: 'Sorry!',
-                  template: 'This track is not  available!'
+                $ionicLoading.show({
+                  template: 'Sorry, this track is not available.',
+                  duration: 1500
                 });
               }
             })
@@ -536,9 +536,9 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicPopup', 
             }
             player.playPause(scope.tracks[i].src);
           } else {
-            $ionicPopup.alert({
-              title: 'Sorry!',
-              template: 'This track is not available!'
+            $ionicLoading.show({
+              template: 'Sorry, this track is not available.',
+              duration: 1500
             });
           }
         }

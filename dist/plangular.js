@@ -57,80 +57,6 @@ module.exports = audio;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
-
-module.exports = function(n, options) {
-
-  var options = options || {};
-
-  var hours = Math.floor(n / 3600),
-    mins = '0' + Math.floor((n % 3600) / 60),
-    secs = '0' + Math.floor((n % 60));
-
-  mins = mins.substr(mins.length - 2);
-  secs = secs.substr(secs.length - 2);
-
-  if(!isNaN(secs)){
-    if (hours){
-      return hours+':'+mins+':'+secs;  
-    } else {
-      return mins+':'+secs;  
-    };
-  } else {
-    return '00:00';
-  };
-
-};
-
-
-},{}],4:[function(require,module,exports){
-
-var qs = require('query-string');
-var corslite = require('corslite');
-var jsonp = require('browser-jsonp');
-
-
-var endpoint = 'https://api.soundcloud.com/resolve.json';
-
-module.exports = function(params) {
-
-  var params = params || {};
-  var options;
-  var callback;
-
-  if (typeof arguments[1] === 'object') {
-    options = arguments[1];
-    callback = arguments[2];
-  } else {
-    options = {};
-    callback = arguments[1];
-  }
-
-  var url = endpoint + '?' + qs.stringify(params);
-
-  corslite(url, function(err, res) {
-    try {
-      if (err) throw err;
-      if (!err) {
-        res = JSON.parse(res.response) || res;
-        callback(err, res);
-      }
-    } catch(e) {
-      jsonp({
-        url: url,
-        error: function(err) {
-          callback(err);
-        },
-        success: function(res) {
-          callback(null, res);
-        }
-      });
-    }
-  }, true);
-
-};
-
-
-},{"browser-jsonp":5,"corslite":6,"query-string":7}],5:[function(require,module,exports){
 (function() {
   var JSONP, computedUrl, createElement, encode, noop, objectToURI, random, randomString;
 
@@ -143,8 +69,10 @@ module.exports = function(params) {
   random = Math.random;
 
   JSONP = function(options) {
-    var callback, done, head, params, script;
-    options = options ? options : {};
+    var callback, callbackFunc, callbackName, done, head, params, script;
+    if (options == null) {
+      options = {};
+    }
     params = {
       data: options.data || {},
       error: options.error || noop,
@@ -159,16 +87,13 @@ module.exports = function(params) {
     }
     done = false;
     if (params.beforeSend({}, params) !== false) {
-      callback = params.data[options.callbackName || 'callback'] = 'jsonp_' + randomString(15);
+      callbackName = options.callbackName || 'callback';
+      callbackFunc = options.callbackFunc || 'jsonp_' + randomString(15);
+      callback = params.data[callbackName] = callbackFunc;
       window[callback] = function(data) {
+        window[callback] = null;
         params.success(data, params);
-        params.complete(data, params);
-        try {
-          return delete window[callback];
-        } catch (_error) {
-          window[callback] = void 0;
-          return void 0;
-        }
+        return params.complete(data, params);
       };
       script = createElement('script');
       script.src = computedUrl(params);
@@ -184,18 +109,35 @@ module.exports = function(params) {
         }, params);
       };
       script.onload = script.onreadystatechange = function() {
-        if (!done && (!this.readyState || this.readyState === 'loaded' || this.readyState === 'complete')) {
-          done = true;
+        var ref, ref1;
+        if (done || ((ref = this.readyState) !== 'loaded' && ref !== 'complete')) {
+          return;
+        }
+        done = true;
+        if (script) {
           script.onload = script.onreadystatechange = null;
-          if (script && script.parentNode) {
-            script.parentNode.removeChild(script);
+          if ((ref1 = script.parentNode) != null) {
+            ref1.removeChild(script);
           }
           return script = null;
         }
       };
-      head = head || window.document.getElementsByTagName('head')[0] || window.document.documentElement;
-      return head.insertBefore(script, head.firstChild);
+      head = window.document.getElementsByTagName('head')[0] || window.document.documentElement;
+      head.insertBefore(script, head.firstChild);
     }
+    return {
+      abort: function() {
+        window[callback] = function() {
+          return window[callback] = null;
+        };
+        done = true;
+        if (script != null ? script.parentNode : void 0) {
+          script.onload = script.onreadystatechange = null;
+          script.parentNode.removeChild(script);
+          return script = null;
+        }
+      }
+    };
   };
 
   noop = function() {
@@ -214,26 +156,30 @@ module.exports = function(params) {
     var str;
     str = '';
     while (str.length < length) {
-      str += random().toString(36)[2];
+      str += random().toString(36).slice(2, 3);
     }
     return str;
   };
 
   objectToURI = function(obj) {
     var data, key, value;
-    data = [];
-    for (key in obj) {
-      value = obj[key];
-      data.push(encode(key) + '=' + encode(value));
-    }
+    data = (function() {
+      var results;
+      results = [];
+      for (key in obj) {
+        value = obj[key];
+        results.push(encode(key) + '=' + encode(value));
+      }
+      return results;
+    })();
     return data.join('&');
   };
 
-  if ((typeof define !== "undefined" && define !== null) && define.amd) {
+  if (typeof define !== "undefined" && define !== null ? define.amd : void 0) {
     define(function() {
       return JSONP;
     });
-  } else if ((typeof module !== "undefined" && module !== null) && module.exports) {
+  } else if (typeof module !== "undefined" && module !== null ? module.exports : void 0) {
     module.exports = JSONP;
   } else {
     this.JSONP = JSONP;
@@ -241,7 +187,7 @@ module.exports = function(params) {
 
 }).call(this);
 
-},{}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 function corslite(url, callback, cors) {
     var sent = false;
 
@@ -336,7 +282,33 @@ function corslite(url, callback, cors) {
 
 if (typeof module !== 'undefined') module.exports = corslite;
 
-},{}],7:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
+
+module.exports = function(n, options) {
+
+  var options = options || {};
+
+  var hours = Math.floor(n / 3600),
+    mins = '0' + Math.floor((n % 3600) / 60),
+    secs = '0' + Math.floor((n % 60));
+
+  mins = mins.substr(mins.length - 2);
+  secs = secs.substr(secs.length - 2);
+
+  if(!isNaN(secs)){
+    if (hours){
+      return hours+':'+mins+':'+secs;  
+    } else {
+      return mins+':'+secs;  
+    };
+  } else {
+    return '00:00';
+  };
+
+};
+
+
+},{}],6:[function(require,module,exports){
 /*!
 	query-string
 	Parse and stringify URL query strings
@@ -400,12 +372,59 @@ if (typeof module !== 'undefined') module.exports = corslite;
 	} else if (typeof module !== 'undefined' && module.exports) {
 		module.exports = queryString;
 	} else {
-		window.queryString = queryString;
+		self.queryString = queryString;
 	}
 })();
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 
+var qs = require('query-string');
+var corslite = require('corslite');
+var jsonp = require('browser-jsonp');
+
+
+var endpoint = 'https://api.soundcloud.com/resolve.json';
+
+module.exports = function(params) {
+
+  var params = params || {};
+  var options;
+  var callback;
+
+  if (typeof arguments[1] === 'object') {
+    options = arguments[1];
+    callback = arguments[2];
+  } else {
+    options = {};
+    callback = arguments[1];
+  }
+
+  var url = endpoint + '?' + qs.stringify(params);
+
+  corslite(url, function(err, res) {
+    try {
+      if (err) throw err;
+      if (!err) {
+        res = JSON.parse(res.response) || res;
+        callback(err, res);
+      }
+    } catch(e) {
+      jsonp({
+        url: url,
+        error: function(err) {
+          callback(err);
+        },
+        success: function(res) {
+          callback(null, res);
+        }
+      });
+    }
+  }, true);
+
+};
+
+
+},{"browser-jsonp":3,"corslite":4,"query-string":6}],8:[function(require,module,exports){
 // Plangular
 // AngularJS Version
 
@@ -416,7 +435,7 @@ var resolve = require('soundcloud-resolve-jsonp');
 var Player = require('audio-player');
 var hhmmss = require('hhmmss');
 
-plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeout, plangularConfig) {
+plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicPopup', function($timeout, plangularConfig, $ionicPopup) {
 
   var client_id = plangularConfig.clientId;
   var player = new Player();
@@ -424,11 +443,11 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
   return {
 
     restrict: 'A',
-    scope: true,
+    scope: false,
 
     link: function(scope, elem, attr) {
 
-      var src = attr.plangular;
+      //var src = attr.plangular;
       scope.player = player;
       scope.audio = player.audio;
       scope.currentTime = 0;
@@ -462,25 +481,6 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
         return track;
       }
 
-      if (src) {
-        resolve({ url: src, client_id: client_id }, function(err, res) {
-          if (err) { console.error(err); }
-          scope.$apply(function() {
-            scope.track = createSrc(res);
-            if (Array.isArray(res)) {
-              scope.tracks = res.map(function(track) {
-                return createSrc(track);
-              });
-            } else if (res.tracks) {
-              scope.playlist = res;
-              scope.tracks = res.tracks.map(function(track) {
-                return createSrc(track);
-              });
-            }
-          });
-        });
-      }
-
       scope.play = function(i) {
         if (typeof i !== 'undefined' && scope.tracks.length) {
           scope.index = i;
@@ -493,16 +493,87 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
         player.pause();
       };
 
-      scope.playPause = function(i) {
-        if (typeof i !== 'undefined' && scope.tracks.length) {
-          scope.index = i;
-          scope.track = scope.tracks[i];
+      scope.playPause = function(i, src, curArtistId, newArtistId) {
+        if (src && curArtistId != newArtistId) {
+          resolve({ url: src, client_id: client_id }, function(error, response) {
+            if (error) {
+              console.error(error);
+            }
+            scope.$apply(function() {
+              // scope.track = createSrc(response);
+              console.log(scope.track);
+              scope.curArtistId = newArtistId;
+              if (Array.isArray(response)) {
+                scope.tracks = response.map(function(track) {
+                  return createSrc(track);
+                })
+              } else if (response.tracks) {
+                scope.playlist = response;
+                scope.tracks = response.tracks.map(function(track) {
+                  return createSrc(track);
+                })
+              }
+
+              if (scope.tracks[i].src) {
+                if (typeof i !== 'undefined' && scope.tracks.length) {
+                  scope.index = i;
+                  scope.track = scope.tracks[i];
+                }
+                player.playPause(scope.tracks[i].src);
+              } else {
+                $ionicPopup.alert({
+                  title: 'Sorry!',
+                  template: 'This track is not  available!'
+                });
+              }
+            })
+          })
+        } else {
+          if (scope.tracks[i].src) {
+            if (typeof i !== 'undefined' && scope.tracks.length) {
+              scope.index = i;
+              scope.track = scope.tracks[i];
+            }
+            player.playPause(scope.tracks[i].src);
+          } else {
+            $ionicPopup.alert({
+              title: 'Sorry!',
+              template: 'This track is not available!'
+            });
+          }
         }
-        player.playPause(scope.track.src);
+
+
+      };
+
+
+      scope.playPauseFav = function(index, favList) {
+        if (favList) {
+          scope.track = createSrc(favList);
+          if (Array.isArray(favList)) {
+            scope.tracks = favList.map(function(track) {
+              return createSrc(track);
+            })
+          } else if (favList.tracks) {
+            scope.playlist = favList;
+            scope.tracks = favList.tracks.map(function(track) {
+              return createSrc(track);
+            })
+          }
+          if (typeof index !== 'undefined' && scope.tracks.length) {
+            scope.index = index;
+            scope.track = scope.tracks[index];
+          }
+          player.playPause(scope.tracks[index].src);
+        }
+
+
       };
 
       scope.previous = function() {
-        if (scope.tracks.length < 1) { return false }
+        if (scope.tracks.length < 1) {
+          return false
+        }
         if (scope.index > 0) {
           scope.index--;
           scope.play(scope.index);
@@ -510,7 +581,9 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
       };
 
       scope.next = function() {
-        if (scope.tracks.length < 1) { return false }
+        if (scope.tracks.length < 1) {
+          return false
+        }
         if (scope.index < scope.tracks.length - 1) {
           scope.index++;
           scope.play(scope.index);
@@ -520,6 +593,7 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
       };
 
       scope.seek = function(e) {
+        console.log(scope.track.src, player.audio.src);
         if (scope.track.src === player.audio.src) {
           scope.player.seek(e);
         }
@@ -562,5 +636,5 @@ plangular.provider('plangularConfig', function() {
 
 module.exports = 'plangular';
 
-},{"audio-player":1,"hhmmss":3,"soundcloud-resolve-jsonp":4}]},{},[8])(8)
+},{"audio-player":1,"hhmmss":5,"soundcloud-resolve-jsonp":7}]},{},[8])(8)
 });

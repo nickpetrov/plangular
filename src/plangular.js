@@ -1,4 +1,3 @@
-
 // Plangular
 // AngularJS Version
 
@@ -9,7 +8,7 @@ var resolve = require('soundcloud-resolve-jsonp');
 var Player = require('audio-player');
 var hhmmss = require('hhmmss');
 
-plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeout, plangularConfig) {
+plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicPopup', function($timeout, plangularConfig, $ionicPopup) {
 
   var client_id = plangularConfig.clientId;
   var player = new Player();
@@ -17,11 +16,11 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
   return {
 
     restrict: 'A',
-    scope: true,
+    scope: false,
 
     link: function(scope, elem, attr) {
 
-      var src = attr.plangular;
+      //var src = attr.plangular;
       scope.player = player;
       scope.audio = player.audio;
       scope.currentTime = 0;
@@ -55,25 +54,6 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
         return track;
       }
 
-      if (src) {
-        resolve({ url: src, client_id: client_id }, function(err, res) {
-          if (err) { console.error(err); }
-          scope.$apply(function() {
-            scope.track = createSrc(res);
-            if (Array.isArray(res)) {
-              scope.tracks = res.map(function(track) {
-                return createSrc(track);
-              });
-            } else if (res.tracks) {
-              scope.playlist = res;
-              scope.tracks = res.tracks.map(function(track) {
-                return createSrc(track);
-              });
-            }
-          });
-        });
-      }
-
       scope.play = function(i) {
         if (typeof i !== 'undefined' && scope.tracks.length) {
           scope.index = i;
@@ -86,16 +66,87 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
         player.pause();
       };
 
-      scope.playPause = function(i) {
-        if (typeof i !== 'undefined' && scope.tracks.length) {
-          scope.index = i;
-          scope.track = scope.tracks[i];
+      scope.playPause = function(i, src, curArtistId, newArtistId) {
+        if (src && curArtistId != newArtistId) {
+          resolve({ url: src, client_id: client_id }, function(error, response) {
+            if (error) {
+              console.error(error);
+            }
+            scope.$apply(function() {
+              // scope.track = createSrc(response);
+              console.log(scope.track);
+              scope.curArtistId = newArtistId;
+              if (Array.isArray(response)) {
+                scope.tracks = response.map(function(track) {
+                  return createSrc(track);
+                })
+              } else if (response.tracks) {
+                scope.playlist = response;
+                scope.tracks = response.tracks.map(function(track) {
+                  return createSrc(track);
+                })
+              }
+
+              if (scope.tracks[i].src) {
+                if (typeof i !== 'undefined' && scope.tracks.length) {
+                  scope.index = i;
+                  scope.track = scope.tracks[i];
+                }
+                player.playPause(scope.tracks[i].src);
+              } else {
+                $ionicPopup.alert({
+                  title: 'Sorry!',
+                  template: 'This track is not  available!'
+                });
+              }
+            })
+          })
+        } else {
+          if (scope.tracks[i].src) {
+            if (typeof i !== 'undefined' && scope.tracks.length) {
+              scope.index = i;
+              scope.track = scope.tracks[i];
+            }
+            player.playPause(scope.tracks[i].src);
+          } else {
+            $ionicPopup.alert({
+              title: 'Sorry!',
+              template: 'This track is not available!'
+            });
+          }
         }
-        player.playPause(scope.track.src);
+
+
+      };
+
+
+      scope.playPauseFav = function(index, favList) {
+        if (favList) {
+          scope.track = createSrc(favList);
+          if (Array.isArray(favList)) {
+            scope.tracks = favList.map(function(track) {
+              return createSrc(track);
+            })
+          } else if (favList.tracks) {
+            scope.playlist = favList;
+            scope.tracks = favList.tracks.map(function(track) {
+              return createSrc(track);
+            })
+          }
+          if (typeof index !== 'undefined' && scope.tracks.length) {
+            scope.index = index;
+            scope.track = scope.tracks[index];
+          }
+          player.playPause(scope.tracks[index].src);
+        }
+
+
       };
 
       scope.previous = function() {
-        if (scope.tracks.length < 1) { return false }
+        if (scope.tracks.length < 1) {
+          return false
+        }
         if (scope.index > 0) {
           scope.index--;
           scope.play(scope.index);
@@ -103,7 +154,9 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
       };
 
       scope.next = function() {
-        if (scope.tracks.length < 1) { return false }
+        if (scope.tracks.length < 1) {
+          return false
+        }
         if (scope.index < scope.tracks.length - 1) {
           scope.index++;
           scope.play(scope.index);
@@ -113,6 +166,7 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', function($timeo
       };
 
       scope.seek = function(e) {
+        console.log(scope.track.src, player.audio.src);
         if (scope.track.src === player.audio.src) {
           scope.player.seek(e);
         }

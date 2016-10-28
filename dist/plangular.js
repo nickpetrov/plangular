@@ -440,7 +440,7 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
   var client_id = plangularConfig.clientId;
   var player = new Player();
 
-  return {
+return {
 
     restrict: 'A',
     scope: false,
@@ -485,6 +485,10 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
         if (typeof i !== 'undefined' && scope.tracks.length) {
           scope.index = i;
           scope.track = scope.tracks[i];
+          if (scope.track.artist_id) {
+            scope.curArtistId = scope.track.artist_id;
+          }
+          console.log('scope.curArtistId', scope.curArtistId);
         }
         player.play(scope.track.src);
       };
@@ -518,6 +522,8 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
                 if (typeof i !== 'undefined' && scope.tracks.length) {
                   scope.index = i;
                   scope.track = scope.tracks[i];
+                  scope.curArtistId = newArtistId;
+                  console.log('scope.curArtistId', scope.curArtistId);
                 }
                 player.playPause(scope.tracks[i].src);
               } else {
@@ -533,6 +539,8 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
             if (typeof i !== 'undefined' && scope.tracks.length) {
               scope.index = i;
               scope.track = scope.tracks[i];
+              scope.curArtistId = newArtistId;
+              console.log('scope.curArtistId', scope.curArtistId);
             }
             player.playPause(scope.tracks[i].src);
           } else {
@@ -563,6 +571,8 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
           if (typeof index !== 'undefined' && scope.tracks.length) {
             scope.index = index;
             scope.track = scope.tracks[index];
+            scope.curArtistId = scope.track.artist_id;
+            console.log('scope.curArtistId', scope.curArtistId);
           }
           player.playPause(scope.tracks[index].src);
         }

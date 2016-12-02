@@ -122,13 +122,12 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
           if (scope.curArtistId !== artistId || !scope.favList) {
             resetTracks(src)
               .then(function() {
-                console.log('scope.tracks', scope.tracks);
                 scope.curArtistId = artistId;
                 console.log('playPause::scope.curArtistId', scope.curArtistId);
                 setActiveTrack(index);
               })
               .catch(function(err) {
-                console.log(err);
+                console.error(err);
               });
           } else {
             setActiveTrack(index);
@@ -168,7 +167,6 @@ plangular.directive('plangular', ['$timeout', 'plangularConfig', '$ionicLoading'
         };
 
         scope.seek = function(e) {
-          console.log(scope.track.src, player.audio.src);
           if (scope.track.src === player.audio.src) {
             scope.player.seek(e);
           }
